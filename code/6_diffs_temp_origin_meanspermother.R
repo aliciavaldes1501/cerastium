@@ -29,3 +29,9 @@ ggplot(data_cgarden_means,aes(x=temp_ori,y=first_fl_j))+geom_point()+geom_smooth
 ggplot(data_cgarden_means,aes(x=temp_ori,y=first_fl_j,color=stream))+geom_point()+geom_smooth(method="lm",fullrange=F)
 ggplot(data_cgarden_means,aes(x=temp_ori,y=first_fl_j))+geom_point()+geom_smooth(method="lm",fullrange=F)+
   facet_wrap( ~ stream, ncol=2)
+
+ggplot(data_cgarden_means,aes(x=temp_ori,y=first_fl_j))+geom_point(aes(color=stream))+
+  geom_smooth(aes(color=stream),method = "lm", size=0.8,se=F,fullrange=F)+
+  geom_smooth(method = "lm", color = alpha("black", 0.3),size=1)+
+  theme_base()+theme(plot.background=element_rect(fill="white", colour=NA))+
+  xlab("Soil temperature at origin")+ylab("First flowering day (=later phenology)")
