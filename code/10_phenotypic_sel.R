@@ -7,6 +7,8 @@ library(gridExtra)
 library(effects)
 library(RColorBrewer)
 library(ggeffects)
+library(car)
+library(MuMIn)
 
 data17_seeds<-read.table("data/clean/cerastium_2017_seeds.csv",header=T,sep="\t",dec=",")
 head(data17_seeds)
@@ -98,7 +100,12 @@ subset_seeds_3$area_std<-(subset_seeds_3$area-mean(subset_seeds_3$area,na.rm=T))
 
 subset_fruits$FFD_std<-(yday(subset_fruits$FFD)-mean(yday(subset_fruits$FFD)))/sd(yday(subset_fruits$FFD))
 subset_fruits_2$FFD_std<-(yday(subset_fruits_2$FFD)-mean(yday(subset_fruits_2$FFD)))/sd(yday(subset_fruits_2$FFD))
-subset_fruits_2$FFD_std<-(yday(subset_fruits_2$FFD)-mean(yday(subset_fruits_2$FFD)))/sd(yday(subset_fruits_2$FFD))
+subset_fruits_3$FFD_std<-(yday(subset_fruits_3$FFD)-mean(yday(subset_fruits_3$FFD)))/sd(yday(subset_fruits_3$FFD))
+
+subset_fruits_3$nfl_std<-(subset_fruits_3$nfl-mean(subset_fruits_3$nfl))/sd(subset_fruits_3$nfl)
+
+
+
 
 #Phenotypic selection analysis
 
@@ -217,71 +224,63 @@ abline(lm(n_seeds_rel~medianh_std,data=subset_seeds_3))
 plot(n_seeds_rel~temp1,subset_seeds_2)
 abline(lm(n_seeds_rel~temp1,data=subset_seeds_2))
 
-#### WAIT UNTIL JOHAN ANSWERS TO CHANGE AFTER HERE ####
+#models with FFD, temp, FFD*temp and nfl
+model_sel7<-lm(n_seeds_rel~FFD_std*temp1+nfl_std,data=subset_seeds_3, na.action = "na.fail")
+model_sel7<-lm(n_seeds_rel~FFD_std+temp1+nfl_std,data=subset_seeds_3, na.action = "na.fail")
+summary(model_sel7)
+summary(stats::step(model_sel7))
+Anova(model_sel7,type="II")
+Anova(model_sel7,type="III")
+vif(model_sel7)
+summary(model.avg(dredge(model_sel7), subset = delta < 2)) 
+
+summary(lm(n_seeds_rel~FFD_std*temp1+nfl_std,data=subset_seeds_3, na.action = "na.fail"))
+summary(lm(n_seeds_rel~FFD_std+temp1+nfl_std,data=subset_seeds_3, na.action = "na.fail"))
+summary(lm(n_seeds_rel~FFD_std+temp1,data=subset_seeds_3, na.action = "na.fail"))
+
+Anova(lm(n_seeds_rel~FFD_std*temp1+nfl_std,data=subset_seeds_3, na.action = "na.fail"))
+Anova(lm(n_seeds_rel~FFD_std+temp1+nfl_std,data=subset_seeds_3, na.action = "na.fail"))
+Anova(lm(n_seeds_rel~FFD_std+temp1,data=subset_seeds_3, na.action = "na.fail"))
+
+#Differences among plots?
+model_sel8<-lm(n_seeds_rel~FFD_std*plot,data=subset_seeds_3, na.action = "na.fail")
+summary(model_sel8)
+Anova(model_sel8)
+summary(stats::step(model_sel8))
+
+Anova(lm(n_seeds_rel~FFD_std*plot,data=subset_seeds_3, na.action = "na.fail"))
+
+
+
+#####################################################################################################
 
 #Selection via fitness components: fruit number and number of seeds per fruit
 
 #Fruit number
 
 #Linear models
-
-model_sel5<-lm(n_fruits_rel~FFD_std*temp1,data=subset_fruits)
-summary(model_sel5)
-
-model_sel6<-lm(n_fruits_rel~FFD_std+temp1,data=subset_fruits)
-summary(model_sel6)
-
-
-model_sel7<-lm(n_fruits_rel~FFD_std*temp1,data=subset_fruits_2)
-summary(model_sel7)
-
-model_sel8<-lm(n_fruits_rel~FFD_std+temp1,data=subset_fruits_2)
+model_sel8<-lm(n_fruits_rel~FFD_std*temp1+nfl_std,data=subset_fruits_3, na.action = "na.fail")
 summary(model_sel8)
+summary(stats::step(model_sel8))
 
 #Plots of fitness components vs FFD and temp
-plot(n_fruits_rel~FFD_std,subset_fruits_2)
-abline(lm(n_fruits_rel~FFD_std,data=subset_fruits_2))
+plot(n_fruits_rel~FFD_std,subset_fruits_3)
+abline(lm(n_fruits_rel~FFD_std,data=subset_fruits_3))
 
-plot(n_fruits_rel~temp1,subset_fruits_2)
-abline(lm(n_fruits_rel~temp1,data=subset_fruits_2))
+plot(n_fruits_rel~temp1,subset_fruits_3)
+abline(lm(n_fruits_rel~temp1,data=subset_fruits_3))
 
-#Number of seeds per fruit
+#Number of seeds per fruit...
 
-#Linear models
-
-model_sel9<-lm(seeds_per_fr_rel~FFD_std*temp1,data=subset_fruits)
-summary(model_sel9)
-
-model_sel10<-lm(seeds_per_fr_rel~FFD_std+temp1,data=subset_fruits)
-summary(model_sel10)
-
-#Plots of fitness components vs FFD and temp
-plot(seeds_per_fr_rel~FFD_std,subset_fruits)
-abline(lm(seeds_per_fr_rel~FFD_std,data=subset_fruits))
-
-plot(seeds_per_fr_rel~temp1,subset_fruits)
-abline(lm(seeds_per_fr_rel~temp1,data=subset_fruits))
+#...
 
 #Total fitness, with quadratic terms
-model_sel11<-lm(n_seeds_rel~FFD_std+I(FFD_std^2)+temp1+I(temp1^2),data=subset_seeds_2)
-summary(model_sel11)
+model_sel9<-lm(n_seeds_rel~(FFD_std+I(FFD_std^2))*(temp1+I(temp1^2))+nfl_std,data=subset_seeds_3)
+summary(model_sel9)
+summary(stats::step(model_sel9))
 
-model_sel12<-lm(n_seeds_rel~FFD_std+I(FFD_std^2)+temp1,data=subset_seeds_2)
-summary(model_sel12)
+#Fruit set...
 
-model_sel13<-lm(n_seeds_rel~FFD_std+temp1+I(temp1^2),data=subset_seeds_2)
-summary(model_sel13)
-
-model_sel14<-lm(n_seeds_rel~FFD_std*(temp1+I(temp1^2)),data=subset_seeds_2)
-summary(model_sel14)
-
-model_sel15<-lm(n_seeds_rel~temp1*(FFD_std+I(FFD_std^2)),data=subset_seeds_2)
-summary(model_sel15)
-
-model_sel16<-lm(n_seeds_rel~temp1*I(temp1^2)*(FFD_std+I(FFD_std^2)),data=subset_seeds_2)
-summary(model_sel16)
-
-
-#Fruit set
+#...
 
 
