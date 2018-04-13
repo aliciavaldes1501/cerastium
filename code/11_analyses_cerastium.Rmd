@@ -1,0 +1,214 @@
+---
+title: "Analyses Cerastium"
+output:
+  pdf_document: 
+    toc: yes
+editor_options: 
+  chunk_output_type: console
+---
+\newpage
+```{r Load libraries, include=FALSE}
+library(ggplot2)
+library(ggthemes)
+library(car)
+library(gridExtra)
+library(papeR)
+library(knitr)
+library(lme4)
+library(lmerTest)
+library(lubridate)
+```
+
+```{r Define ggplot theme, include=FALSE}
+my_theme <- function(){
+  theme_base()+theme(plot.background=element_rect(fill="white", colour=NA))+
+  theme(legend.position="none")+theme(text=element_text(family="serif"))
+}
+```
+
+```{r Read data, include=FALSE}
+#Read data files 2015 (clean files after 1_data_prep)
+data_f_2015<-read.table("C:/Users/User/Dropbox/SU/Projects/cerastium/data/clean/cerastium_field_clean.txt",
+                        header=T,sep="\t",dec=".")
+data_cg<-read.table("C:/Users/User/Dropbox/SU/Projects/cerastium/data/clean/cerastium_cgarden_clean.txt",
+                    header=T,sep="\t",dec=".")
+
+data_f_2015$flowered<-with(data_f_2015,ifelse(stage==5,1,0))
+data_cg$first_fl<-as.Date(as.character(data_cg$first_fl))
+data_cg$last_fl<-as.Date(as.character(data_cg$last_fl))
+data_cg$first_bud<-as.Date(as.character(data_cg$first_bud))
+data_cg$last_bud<-as.Date(as.character(data_cg$last_bud))
+data_cg$peak_fl<-as.Date(as.character(data_cg$peak_fl))
+data_cg$patch_new<-as.factor(paste(data_cg$stream,data_cg$patch,sep="_"))
+data_cg$first_fl_j<-yday(data_cg$first_fl)
+```
+
+# Field data 2015: Distributions
+
+```{r Distributions 2015, echo=FALSE, fig.height=3.5, fig.width=10, warning=FALSE}
+# Make plots
+distrs_2015<-grid.arrange(
+  ggplot(data_f_2015,aes(stage))+geom_histogram(stat="count",colour="black", fill="grey")+xlab("Phenological\nstage")+ylab("Count")+my_theme(),
+  ggplot(data_f_2015,aes(flowered))+geom_histogram(stat="count",colour="black",fill="grey")+xlab("Probability\nof flowering")+ylab("Count")+my_theme(),
+  ggplot(data_f_2015,aes(temp))+geom_histogram(binwidth=5,colour="black", fill="grey")+xlab("Soil temperature\n(ºC)")+ylab("Count")+my_theme(),
+ncol=3)
+
+# Save plots
+ggsave(filename="C:/Users/User/Dropbox/SU/Projects/cerastium/results/figures/distrs_2015.tiff",plot=distrs_2015,device="tiff",width=30,height=10,units="cm",dpi=600)
+
+ 
+
+```
+
+# Field data 2015: Differences among streams
+
+```{r Plots differences among streams 2015, echo=FALSE, fig.height=3.5, fig.width=10}
+p1<-ggplot(data_f_2015,aes(x=stream,y=stage))+geom_boxplot()+xlab("Strean")+ylab("Phenological stage")+my_theme()
+p2<-ggplot(data_f_2015,aes(x=stream,fill=as.factor(flowered)))+geom_bar(position="dodge")+xlab("Stream")+ylab("Count")+my_theme()+theme(legend.position=c(0.8, 0.82),legend.title=element_blank())
+p3<-ggplot(data_f_2015,aes(x=stream,y=temp))+geom_boxplot()+xlab("Stream")+ylab("Soil temperature (ºC)")+my_theme()
+grid.arrange(p1,p2,p3,ncol=3)
+ggsave(filename="C:/Users/User/Dropbox/SU/Projects/cerastium/results/figures/diffs_2015.tiff",
+       plot=grid.arrange(p1,p2,p3,ncol=3),device="tiff",width=30,height=10,units="cm",dpi=600) 
+```
+
+Differences among streams in phenological stage: Anova and Tukey HSD
+
+```{r stage~stream 2015, fig.height=2.2, fig.width=3,message=FALSE}
+kable(prettify(with(data_f_2015,Anova(lm(stage~stream)))))
+kable(prettify(as.data.frame(with(data_f_2015,TukeyHSD(aov(lm(stage~stream))))$stream)))
+```
+
+\newpage
+Differences among streams in proability of flowering: Anova and Tukey HSD
+
+```{r flowered~stream 2015, fig.height=2.2, fig.width=3, warning=FALSE,message=FALSE}
+kable(prettify(with(data_f_2015,Anova(glm(flowered~stream,family="binomial")))))
+kable(prettify(as.data.frame(with(data_f_2015,TukeyHSD(aov(as.numeric(flowered)~stream)))$stream)))
+```
+
+Differences among streams in temperature: Anova and Tukey HSD
+
+```{r temp~stream 2015, fig.height=3, fig.width=4, warning=FALSE,message=FALSE}
+kable(prettify(with(data_f_2015,Anova(lm(temp~stream)))))
+kable(prettify(as.data.frame(with(data_f_2015,TukeyHSD(aov(lm(temp~stream))))$stream)))
+```
+
+# Hypothesis 1: Local soil warming leads to an earlier phenology (2015 and 2017)
+
+```{r flowered~temp plot 2015, echo=FALSE,fig.height=3.5, fig.width=4.5}
+p4<-ggplot(data_f_2015,aes(x=temp,y=flowered))+geom_point(aes(color=stream))+
+  geom_smooth(aes(color=stream),method = "glm", method.args=c(family="binomial"),size=1,se=F,fullrange=F)+
+  geom_smooth(method = "glm", method.args=c(family="binomial"),color="black",size=1.5)+
+  my_theme()+xlab("Soil temperature")+ylab("Probability of flowering\nin the field")+
+  theme(legend.position=c(0.85,0.3))
+p4
+ggsave(filename="C:/Users/User/Dropbox/SU/Projects/cerastium/results/figures/flowered_temp_2015.tiff",
+       plot=p4,device="tiff",width=12,height=10,units="cm",dpi=600) 
+```
+
+## Logistic regression (relationship among probability of flowering and soil temperature) with pooled data 
+
+```{r flowered~temp pooled data, echo=TRUE, message=FALSE, warning=FALSE}
+kable(prettify(summary(glm(flowered~temp,data=data_f_2015,family="binomial"))))
+```
+
+There is a strong overall relatiohsnip among probability of flowering and soil temperature.
+
+## Logistic regression for each stream
+
+```{r flowered~temp each stream, echo=TRUE, message=FALSE, warning=FALSE}
+kable(prettify(summary(glm(flowered~temp,data=subset(data_f_2015,stream=="17"),family="binomial"))))
+kable(prettify(summary(glm(flowered~temp,data=subset(data_f_2015,stream=="Main"),family="binomial"))))
+kable(prettify(summary(glm(flowered~temp,data=subset(data_f_2015,stream=="Parking"),family="binomial"))))
+kable(prettify(summary(glm(flowered~temp,data=subset(data_f_2015,stream=="WS"),family="binomial"))))
+```
+
+Within each stream, there are no significant relationships.
+
+## Logistic regression including temperature and stream
+
+```{r flowered~temp*stream, message=FALSE}
+# Different slopes and intercepts for each stream
+model1<-glm(flowered~temp*stream,family="binomial",data_f_2015)
+kable(prettify(summary(model1)))
+# Common slope, different intercepts for each stream
+model2<-glm(flowered~temp+stream,family="binomial",data_f_2015)
+kable(prettify(summary(model2)))
+anova(model1,model2, test="Chisq") # Likelihood ratio test comparing both models 
+```
+
+There is no support for significant differences between slopes (despite the graph!), so we keep model2 with a common slope and different intercepts for each stream. We cannot really separate the effects of streams from the effects of temperature, as streams have very different ranges of temperatures, i.e. effects of streams are likely to be mostly effects of temperatures. This means that differences in temperature at larger scales (among streams) are more important than differences at small scales (within streams). 
+
+# Hypothesis 2: Phenotypic selection for early flowering is stronger in colder sites with shorter growing seasons (2017)
+
+
+
+# Hypothesis 3: As a consequence of selection, differences in phenology in a common environment are related to soil temperature at the plant origin in a counter-gradient fashion, with plants originating from colder sites flowering earlier
+
+Histogram of Julian date of first flowering in the common garden (2017)
+
+```{r distr first_fl_j, echo=FALSE,warning=FALSE,message=FALSE,fig.height=3.5, fig.width=4.5}
+ggplot(data_cg,aes(first_fl_j))+geom_histogram(colour="black", fill="grey")+my_theme()+xlab("Julian date of first flowering")+ylab("Count")
+ggsave(filename="C:/Users/User/Dropbox/SU/Projects/cerastium/results/figures/distr_FFD_cg.tiff",
+       device="tiff",width=12,height=10,units="cm",dpi=600) 
+```
+
+## Effect of mother plant (and stream) on the flowering phenology in the common garden
+
+Mother plant is treated as a random effect (we are not interested in the effect of "a particular mother"), and stream is treated as a fixed effect (there are few streams, and we might be interested in the effect of a particular stream due to the very large differences in temperature among them). 
+
+```{r first_fl_j~stream+mother, warning=FALSE, message=FALSE}
+# This takes into account that mother is nested within stream
+model3<-lmer(first_fl_j~stream+(1|mother_pl_id_new), REML=F,data=data_cg)
+kable(prettify(summary(model3))) # Stream is significant
+# Likelihood ratio test for testing the signigicance of random effects
+# Compares a model with a given random effect to the same model without the random effect
+rand(model3) # Mother is significant
+```
+
+There is an effect of both mother plant and stream of origin on flowering phenology (first flowering day) in the common garden: there are differences among streams, and differences among mothers within streams.
+
+## Are differences among mother plants on the flowering phenology in the common garden related to soil temperature at the site of origin?
+
+We expect plants to respond to warming in spring in a counter-gradient fashion, i.e. plants growing on warmer soils will flower early in the field but later in the common garden (requiring more warm days to start development) than plants from cold soils. Plants growing on colder soils will flower later in the field, but earlier in the common garden, because they can start developing at lower temperatures (they are adapted to colder conditions and they have evolved to compensate for the later and shorter growing season). They have the genetic capacity to develop at lower temperatures, probably because they have been selected for rapid development in environments with short growing seasons.
+
+```{r first_fl_j~temp plot, echo=FALSE,fig.height=3.5, fig.width=4.5,warning=FALSE}
+ggplot(data_cg,aes(x=temp_ori,y=first_fl_j))+geom_point(aes(color=stream))+
+  geom_smooth(aes(color=stream),method = "lm", size=1,se=F)+
+  geom_smooth(method = "lm", color = alpha("black", 0.7),size=1.5)+ scale_y_reverse()+
+  my_theme()+xlab("Soil temperature at origin")+ylab("First flowering day\n in common garden")
+ggsave(filename="C:/Users/User/Dropbox/SU/Projects/cerastium/results/figures/FFD_tempori.tiff",
+       device="tiff",width=12,height=10,units="cm",dpi=600) 
+```
+
+### LM with pooled data
+
+```{r first_fl_j~temp_ori pooled data, echo=TRUE, message=FALSE, warning=FALSE}
+kable(prettify(summary(lm(first_fl_j~temp_ori,data=data_cg))))
+```
+
+There is a strong overall relatiohsnip among FFD in the common garden and soil temperature at the origin, that goes in the expected direction (i.e. opposite to the relationship observed in field conditions).
+
+### LMM for each stream
+
+```{r first_fl_j~temp_ori each stream, echo=TRUE, message=FALSE, warning=FALSE}
+kable(prettify(summary(lmer(first_fl_j~temp_ori+(1|mother_pl_id_new),data=subset(data_cg,stream=="17")))))
+kable(prettify(summary(lmer(first_fl_j~temp_ori+(1|mother_pl_id_new),data=subset(data_cg,stream=="Main")))))
+kable(prettify(summary(lmer(first_fl_j~temp_ori+(1|mother_pl_id_new),data=subset(data_cg,stream=="Park")))))
+kable(prettify(summary(lmer(first_fl_j~temp_ori+(1|mother_pl_id_new),data=subset(data_cg,stream=="WS")))))
+
+```
+
+Within each stream, there are no significant relationships.
+
+### LMM including temperature, stream and mother
+
+```{r first_fl_j~temp_ori+stream+mother, warning=FALSE, message=FALSE}
+# This takes into account that mother is nested within stream
+model4<-lmer(first_fl_j~temp_ori+(1|stream)+(1|mother_pl_id_new),data = data_cg)
+kable(prettify(summary(model4))) # Temperature is significant
+rand(model4) #Stream and mother are significant
+```
+
+Differences among mother plants in phenology are related to soil temperature at origin. Plants respond to warming a counter-gradient fashion: plants from warmer soils flower later in the common garden than plants from cold soils. 
+
