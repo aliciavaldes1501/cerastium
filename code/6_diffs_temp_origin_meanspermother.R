@@ -25,6 +25,10 @@ summary(lm(first_fl_j~temp_ori*stream,data_cgarden_means))
 
 Anova(lm(first_fl_j~temp_ori,data_cgarden_means))
 
+Anova(lmer(first_fl_j~temp_ori+(1|stream),data_cgarden_means))
+summary(lmer(first_fl_j~temp_ori+(1|stream),data_cgarden_means))
+rand(lmer(first_fl_j~temp_ori+(1|stream),data_cgarden_means))
+
 ggplot(data_cgarden_means,aes(x=temp_ori,y=first_fl_j))+geom_point()+geom_smooth(method="lm")
 ggplot(data_cgarden_means,aes(x=temp_ori,y=first_fl_j,color=stream))+geom_point()+geom_smooth(method="lm",fullrange=F)
 ggplot(data_cgarden_means,aes(x=temp_ori,y=first_fl_j))+geom_point()+geom_smooth(method="lm",fullrange=F)+

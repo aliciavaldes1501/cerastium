@@ -283,4 +283,5 @@ summary(stats::step(model_sel9))
 
 #...
 
+write.table(FFD_temp_fit,"data/clean/cerastium_2017_FFD_temp_fit.txt",sep="\t",dec=".")
 
