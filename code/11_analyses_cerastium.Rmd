@@ -4,7 +4,7 @@ output:
   pdf_document: 
     toc: yes
 editor_options: 
-  chunk_output_type: console
+  chunk_output_type: inline
 ---
 \newpage
 ```{r Load libraries, include=FALSE}
@@ -20,6 +20,7 @@ library(lmerTest)
 library(lubridate)
 library(dplyr)
 library(agricolae)
+library(effects)
 ```
 
 ```{r Define ggplot theme, include=FALSE}
@@ -273,6 +274,8 @@ data_f_2017_sel$FFD_std<-(yday(data_f_2017_sel$FFD)-
                             mean(yday(data_f_2017_sel$FFD)))/sd(yday(data_f_2017_sel$FFD))
 data_f_2017_sel$nfl_std<-(data_f_2017_sel$nfl-
                             mean(data_f_2017_sel$nfl))/sd(data_f_2017_sel$nfl)
+#Relative fitness
+data_f_2017_sel$n_seeds_rel<-data_f_2017_sel$n_seeds/mean(data_f_2017_sel$n_seeds)
 ```
 
 Selection models
@@ -292,6 +295,30 @@ This could be the result of environmental covariation, i.e. that both early flow
 
 ```{r Selection models with log fitness and plot as random}
 summary(lmer(log(n_seeds+1)~FFD_std*temp1+nfl_std+(1|plot_new),data=data_f_2017_sel))
+```
+
+
+```{r Fitness vs. FFD, echo=FALSE}
+ggplot(data_f_2017_sel,aes(x=yday(FFD),y=log(n_seeds+1)))+geom_point()+
+  geom_smooth(method = "lm", color="black",size=1.5)+
+  my_theme()+xlab("FFD (Julian date)")+ylab("Number of seeds (log)")
+ggsave(filename="C:/Users/User/Dropbox/SU/Projects/cerastium/results/figures/fitness_FFD.tiff",
+       device="tiff",width=12,height=12,units="cm",dpi=600) 
+```
+
+```{r Fitness vs. FFD and interaction with temp, echo=FALSE}
+data_f_2017_sel$FFD_julian<-yday(data_f_2017_sel$FFD)
+sel_model<-lmer(log(n_seeds+1)~FFD_julian+temp1+FFD_julian:temp1+nfl_std+(1|plot_new),data=data_f_2017_sel)
+interaction1<-data.frame(effect(term="FFD_julian:temp1", mod=sel_model,
+                                xlevels=list(FFD_julian=seq(156,211,1), temp1=seq(4,33,1))))
+ggplot(interaction1, aes(FFD_julian,fit, group = as.factor(temp1)))+
+  geom_smooth(method=loess,se=F,size=0.3,aes(FFD_julian,fit,color=temp1))+
+  xlab("FFD (Julian date")+ylab("Number of seeds (log)")+theme_base()+
+  scale_color_gradient(low = "blue", high = "red")+
+  theme(legend.position="none")+labs(colour="Soil temperature")+
+  theme(text=element_text(family="serif"))+theme(plot.background=element_rect(fill="white", colour=NA))
+ggsave(filename="C:/Users/User/Dropbox/SU/Projects/cerastium/results/figures/fitness_FFD_temp.tiff",
+       device="tiff",width=12,height=12,units="cm",dpi=600) 
 ```
 
 
@@ -363,4 +390,20 @@ ranova(model9) #Stream and mother are significant
 
 Differences among mother plants in phenology are related to soil temperature at origin. Plants respond to warming a counter-gradient fashion: plants from warmer soils flower later in the common garden than plants from cold soils. 
 
+# Phenotypic and genotypic responses
+
+```{r Phenotypic and genotypic, echo=FALSE}
+ggplot()+
+geom_smooth(data=data_f_2017,aes(x=temp1,y=yday(FFD)),method = "lm",color="black",size=1.5)+
+  my_theme()+xlab("Soil temperature")+ylab(NULL)+
+    theme(axis.text.y=element_blank())
+ggsave(filename="C:/Users/User/Dropbox/SU/Projects/cerastium/results/figures/phen_temp_17.tiff",
+       device="tiff",width=8,height=8,units="cm",dpi=600) 
+ggplot(data_cg,aes(x=temp_ori,y=first_fl_j))+
+  geom_smooth(method = "lm", color = "black",size=1.5)+ 
+  my_theme()+xlab("Soil temperature at origin")+ylab(NULL)+
+  theme(axis.text.y=element_blank())
+ggsave(filename="C:/Users/User/Dropbox/SU/Projects/cerastium/results/figures/phen_temp_cg.tiff",
+       device="tiff",width=8,height=8,units="cm",dpi=600) 
+```
 
