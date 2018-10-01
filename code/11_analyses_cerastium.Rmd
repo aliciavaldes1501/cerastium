@@ -297,28 +297,67 @@ This could be the result of environmental covariation, i.e. that both early flow
 summary(lmer(log(n_seeds+1)~FFD_std*temp1+nfl_std+(1|plot_new),data=data_f_2017_sel))
 ```
 
+```{r Fitness vs. FFD and interaction with temp, echo=FALSE, fig.height=5, fig.width=6}
+sel_model<-lm(n_seeds_rel~FFD_std+temp1+FFD_std:temp1+nfl_std,data=data_f_2017_sel)
+interaction1<-data.frame(effect(term="FFD_std:temp1", mod=sel_model,
+                                xlevels=list(FFD_std=seq(-2.6,3.8,0.1), temp1=seq(4,33,1.5))))
+interaction1$fit_mod<-with(interaction1,ifelse(fit<0,0,fit))
 
-```{r Fitness vs. FFD, echo=FALSE}
-ggplot(data_f_2017_sel,aes(x=yday(FFD),y=log(n_seeds+1)))+geom_point()+
-  geom_smooth(method = "lm", color="black",size=1.5)+
-  my_theme()+xlab("FFD (Julian date)")+ylab("Number of seeds (log)")
-ggsave(filename="C:/Users/User/Dropbox/SU/Projects/cerastium/results/figures/fitness_FFD.tiff",
-       device="tiff",width=12,height=12,units="cm",dpi=600) 
+ggplot()+
+  geom_smooth(data=interaction1,aes(x=FFD_std,y=fit_mod,group=as.factor(temp1),color=temp1),
+              method=loess,se=F,size=0.3)+
+  scale_color_gradient(low = "blue", high = "red")+
+  geom_point(data=data_f_2017_sel,aes(x=FFD_std,y=n_seeds_rel),alpha=0.5)+
+  geom_smooth(data=data_f_2017_sel,aes(x=FFD_std,y=n_seeds_rel),
+              method="lm",color="black",size=1.5,se=F)+
+  theme(legend.position="top")+labs(colour="Soil temperature")+theme_base()+
+  theme(text=element_text(family="serif"))+theme(plot.background=element_rect(fill="white", colour=NA))+
+  xlab("FFD (standardized)")+ylab("Number of seeds (relativized)")
+
+ggsave(filename="C:/Users/User/Dropbox/SU/Projects/cerastium/results/figures/fitness_FFD_temp_rel_std.tiff",
+      device="tiff",width=15,height=10,units="cm",dpi=600) 
+
+sel_model2<-lm(log(n_seeds+1)~FFD_julian+temp1+FFD_julian:temp1+nfl_std,data=data_f_2017_sel)
+interaction2<-data.frame(effect(term="FFD_julian:temp1", mod=sel_model2,
+                                xlevels=list(FFD_julian=seq(156,211,1), temp1=seq(4,33,0.75))))
+interaction2$fit_mod<-with(interaction2,ifelse(fit<0,0,fit))
+
+ggplot()+
+  geom_smooth(data=interaction2,aes(x=FFD_julian,y=fit_mod,group=as.factor(temp1),color=temp1),
+              method=loess,se=F,size=0.3)+
+  scale_color_gradient(low = "blue", high = "red")+
+  geom_point(data=data_f_2017_sel,aes(x=FFD_julian,y=log(n_seeds+1)),alpha=0.5)+
+  geom_smooth(data=data_f_2017_sel,aes(x=FFD_julian,y=log(n_seeds+1)),
+              method="lm",color="black",size=1.5,se=F)+
+  theme(legend.position="top")+labs(colour="Soil temperature")+theme_base()+
+  theme(text=element_text(family="serif"))+theme(plot.background=element_rect(fill="white", colour=NA))+
+  xlab("FFD (Julian date)")+ylab("Number of seeds (log)")
+
+ggsave(filename="C:/Users/User/Dropbox/SU/Projects/cerastium/results/figures/fitness_FFD_temp_tog.tiff",
+      device="tiff",width=15,height=10,units="cm",dpi=600) 
 ```
 
-```{r Fitness vs. FFD and interaction with temp, echo=FALSE}
-data_f_2017_sel$FFD_julian<-yday(data_f_2017_sel$FFD)
-sel_model<-lmer(log(n_seeds+1)~FFD_julian+temp1+FFD_julian:temp1+nfl_std+(1|plot_new),data=data_f_2017_sel)
-interaction1<-data.frame(effect(term="FFD_julian:temp1", mod=sel_model,
-                                xlevels=list(FFD_julian=seq(156,211,1), temp1=seq(4,33,1))))
-ggplot(interaction1, aes(FFD_julian,fit, group = as.factor(temp1)))+
-  geom_smooth(method=loess,se=F,size=0.3,aes(FFD_julian,fit,color=temp1))+
-  xlab("FFD (Julian date")+ylab("Number of seeds (log)")+theme_base()+
-  scale_color_gradient(low = "blue", high = "red")+
+```{r 2-panel figure, echo=FALSE, fig.height=4, fig.width=8}
+p8<-ggplot()+
+  geom_point(data=data_f_2017_sel,aes(x=FFD_std,y=n_seeds_rel),alpha=0.5)+
+  geom_smooth(data=data_f_2017_sel,aes(x=FFD_std,y=n_seeds_rel),method="lm",color="black",size=1,se=F)+
+  theme_base()+theme(text=element_text(family="serif"))+ggtitle("A)")+
+  theme(plot.background=element_rect(fill="white", colour=NA))+
+  xlab("FFD (standardized)")+ylab(NULL)+
+  theme(plot.title=element_text(hjust=-0.10,vjust=0))
+p9<-ggplot()  +
+  geom_smooth(data=interaction1,aes(x=FFD_std,y=fit_mod,group=as.factor(temp1),color=temp1),
+              method=loess,se=F,size=0.3)+theme_base()+theme(text=element_text(family="serif"))+
+  scale_color_gradient(low = "blue", high = "red")+ggtitle("B)")+
+  theme(plot.background=element_rect(fill="white", colour=NA))+
   theme(legend.position="none")+labs(colour="Soil temperature")+
-  theme(text=element_text(family="serif"))+theme(plot.background=element_rect(fill="white", colour=NA))
-ggsave(filename="C:/Users/User/Dropbox/SU/Projects/cerastium/results/figures/fitness_FFD_temp.tiff",
-       device="tiff",width=12,height=12,units="cm",dpi=600) 
+  xlab("FFD (standardized)")+ylab(NULL)+
+  theme(plot.title=element_text(hjust=-0.10,vjust=0))
+grid.arrange(p8,p9,ncol=2,
+    left=textGrob("Number of seeds (relativized)",gp=gpar(fontsize=15,fontfamily="serif"),rot = 90))
+ggsave(filename="C:/Users/User/Dropbox/SU/Projects/cerastium/results/figures/fitness_FFD_temp_2panels.tiff",
+      plot=grid.arrange(p8,p9,ncol=2,left=textGrob("Number of seeds (relativized)",
+      gp=gpar(fontsize=15,fontfamily="serif"),rot = 90)),device="tiff",width=20,height=10,units="cm",dpi=600) 
 ```
 
 
@@ -332,26 +371,25 @@ ggsave(filename="C:/Users/User/Dropbox/SU/Projects/cerastium/results/figures/dis
        device="tiff",width=12,height=10,units="cm",dpi=600) 
 ```
 
-## Effect of mother plant (and stream) on the flowering phenology in the common garden
+## Effect of mother plant on the flowering phenology in the common garden
 
-Both mother plant and stream are treated as random effects. 
+Mother plant treated as random effect. 
 
-```{r first_fl_j~stream+mother, warning=FALSE, message=FALSE}
-# This takes into account that mother is nested within stream
-model8<-lmer(first_fl_j~(1|stream_new/mother_pl_id_new), REML=T,data=data_cg)
+```{r first_fl_j~mother, warning=FALSE, message=FALSE}
+model8<-lmer(first_fl_j~(1|mother_pl_id_new), REML=T,data=data_cg)
 summary(model8)
 # Likelihood ratio test for testing the signigicance of random effects
 # Compares a model with a given random effect to the same model without the random effect
 ranova(model8) # Mother is significant
 ```
 
-There is an effect of both mother plant and stream of origin on flowering phenology (first flowering day) in the common garden: there are differences among streams, and differences among mothers within streams.
+There is an effect of mother plant on flowering phenology (first flowering day) in the common garden: there are differences among mothers.
 
 ## Are differences among mother plants on the flowering phenology in the common garden related to soil temperature at the site of origin?
 
 We expect plants to respond to warming in spring in a counter-gradient fashion, i.e. plants growing on warmer soils will flower early in the field but later in the common garden (requiring more warm days to start development) than plants from cold soils. Plants growing on colder soils will flower later in the field, but earlier in the common garden, because they can start developing at lower temperatures (they are adapted to colder conditions and they have evolved to compensate for the later and shorter growing season). They have the genetic capacity to develop at lower temperatures, probably because they have been selected for rapid development in environments with short growing seasons.
 
-```{r first_fl_j~temp plot, echo=FALSE,fig.height=3.5, fig.width=4.5,warning=FALSE}
+```{r first_fl_j~temp, echo=FALSE,fig.height=3.5, fig.width=4.5,warning=FALSE}
 ggplot(data_cg,aes(x=temp_ori,y=first_fl_j))+geom_point()+
   geom_smooth(method = "lm", color = "black",size=1.5)+ 
   my_theme()+xlab("Soil temperature at origin")+ylab("FFD (Julian date)\nin the common garden")
@@ -379,11 +417,10 @@ kable(prettify(summary(lmer(first_fl_j~temp_ori+(1|mother_pl_id_new),data=subset
 
 Within each stream, there are no significant relationships.
 
-### LMM including temperature, stream and mother
+### LMM including temperature and mother
 
-```{r first_fl_j~temp_ori+stream+mother, warning=FALSE, message=FALSE}
-# This takes into account that mother is nested within stream
-model9<-lmer(first_fl_j~temp_ori+(1|stream_new/mother_pl_id_new),data = data_cg)
+```{r first_fl_j~temp_ori+mother, warning=FALSE, message=FALSE}
+model9<-lmer(first_fl_j~temp_ori+(1|mother_pl_id_new),data = data_cg)
 kable(prettify(summary(model9))) # Temperature is significant
 ranova(model9) #Stream and mother are significant
 ```
@@ -405,5 +442,51 @@ ggplot(data_cg,aes(x=temp_ori,y=first_fl_j))+
   theme(axis.text.y=element_blank())
 ggsave(filename="C:/Users/User/Dropbox/SU/Projects/cerastium/results/figures/phen_temp_cg.tiff",
        device="tiff",width=8,height=8,units="cm",dpi=600) 
+```
+
+# Distances among plants in 2017
+
+```{r Distances among plants 2017}
+coords_pls_2017<-read.table(
+  "C:/Users/User/Dropbox/SU/Projects/cerastium/data/clean/coords_pls_2017.csv",
+  header=T,sep=",",dec=",")
+coords_pls_2017<-merge(coords_pls_2017,data_f_2017[c(1:2,5)])
+names(coords_pls_2017)<-c("id","x","y","plot","temp1")
+
+# Set up a fake key to join on (just a constant)
+coords_pls_2017 <- coords_pls_2017 %>% mutate(k = 1) 
+
+# Perform the join, remove the key, then create the distance
+coords_pls_2017<-coords_pls_2017 %>% 
+  full_join(coords_pls_2017, by = "k") %>% 
+  mutate(dist = sqrt((x.x - x.y)^2 + (y.x - y.y)^2)) %>%
+  select(-k)
+
+coords_pls_2017<-subset(coords_pls_2017,dist>0)
+coords_pls_2017<-subset(coords_pls_2017,plot.x==plot.y)
+
+coords_pls_2017$temp_diff<-abs(coords_pls_2017$temp1.x-coords_pls_2017$temp1.y)
+head(coords_pls_2017)
+write.table(coords_pls_2017,
+            file="C:/Users/User/Dropbox/SU/Projects/cerastium/data/clean/distances_2017.txt",sep="\t")
+```
+
+```{r Plots distances among plants 2017}
+with(coords_pls_2017,plot(temp_diff~dist))
+with(coords_pls_2017,hist(temp_diff))
+with(coords_pls_2017,hist(dist))
+with(subset(coords_pls_2017,dist<1),hist(temp_diff,main="dist<1"))
+with(subset(coords_pls_2017,dist<5),hist(temp_diff,main="dist<5"))
+with(subset(coords_pls_2017,dist<10),hist(temp_diff,main="dist<10"))
+with(subset(coords_pls_2017,dist<20),hist(temp_diff,main="dist<20"))
+subset(coords_pls_2017,dist<15&temp_diff>30) # Differences > 30ºC within distances < 15 m
+```
+
+```{r mean temperature differences}
+with(subset(coords_pls_2017,dist<1),max(temp_diff))
+with(subset(coords_pls_2017,dist<5),max(temp_diff))
+with(subset(coords_pls_2017,dist<10),max(temp_diff))
+with(subset(coords_pls_2017,dist<20),max(temp_diff))
+
 ```
 
