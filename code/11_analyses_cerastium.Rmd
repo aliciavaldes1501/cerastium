@@ -21,6 +21,7 @@ library(lubridate)
 library(dplyr)
 library(agricolae)
 library(effects)
+library(RColorBrewer)
 ```
 
 ```{r Define ggplot theme, include=FALSE}
@@ -196,14 +197,14 @@ p6<-ggplot(data_f_2015,aes(x=temp,y=n_flowered))+geom_point()+
   geom_smooth(method = "glm", method.args=c(family="binomial"),color="black",size=1.5)+
   my_theme()+xlab("Soil temperature")+ylab("Probability of not having flowered\nat the day of recording")+
   # theme(legend.position=c(0.83,0.3))+
-  ggtitle("A) 2015")+scale_x_continuous(limits=c(5,35))
+  ggtitle("(a) 2015")+scale_x_continuous(limits=c(5,35))
 p7<-ggplot(data_f_2017,aes(x=temp1,y=yday(FFD)))+geom_point()+
   geom_smooth(method = "lm",color="black",size=1.5)+
   my_theme()+xlab("Soil temperature")+ylab("FFD (Julian date)")+
   # theme(legend.position="right")+
-  ggtitle("B) 2017")
+  ggtitle("(b) 2017")
 grid.arrange(p6,p7,ncol=2)
-ggsave(filename="C:/Users/User/Dropbox/SU/Projects/cerastium/results/figures/phen_temp.tiff",
+ggsave(filename="C:/Users/User/Dropbox/SU/Projects/cerastium/results/figures/fig1.tiff",
        plot=grid.arrange(p6,p7,ncol=2),device="tiff",width=22,height=10,units="cm",dpi=600) 
 ```
 
@@ -213,6 +214,11 @@ ggsave(filename="C:/Users/User/Dropbox/SU/Projects/cerastium/results/figures/phe
 
 ```{r n_flowered~temp pooled data, echo=TRUE, message=FALSE, warning=FALSE}
 kable(prettify(summary(glm(n_flowered~temp,data=data_f_2015,family="binomial"))))
+NagelkerkeR2(glm(n_flowered~temp,data=data_f_2015,family="binomial"))
+#With height
+kable(prettify(summary(glm(n_flowered~temp+height,data=data_f_2015,family="binomial"))))
+NagelkerkeR2(glm(n_flowered~temp+height,data=data_f_2015,family="binomial"))
+
 ```
 
 There is a strong overall relatiohsnip among probability of flowering and soil temperature.
@@ -245,6 +251,13 @@ We cannot really separate the effects of streams from the effects of temperature
 
 ```{r FFD~temp pooled data, echo=TRUE, message=FALSE, warning=FALSE}
 kable(prettify(summary(lm(yday(FFD)~temp1,data=data_f_2017))))
+summary(lm(yday(FFD)~temp1,data=data_f_2017))$adj.r.squared
+#With median height
+kable(prettify(summary(lm(yday(FFD)~temp1+medianh,data=data_f_2017))))
+summary(lm(yday(FFD)~temp1+medianh,data=data_f_2017))$adj.r.squared
+#With max height
+kable(prettify(summary(lm(yday(FFD)~temp1+maxh,data=data_f_2017))))
+summary(lm(yday(FFD)~temp1+maxh,data=data_f_2017))$adj.r.squared
 ```
 
 There is a strong overall relatiohsnip among FFD and soil temperature.
@@ -283,8 +296,10 @@ Selection models
 ```{r selection models}
 model5<-lm(n_seeds_rel~FFD_std*temp1+nfl_std,data=data_f_2017_sel)
 kable(prettify(summary(model5))) # Selection for FFD does not depend on temperature
+AIC(model5)
 model6<-lm(n_seeds_rel~FFD_std+temp1+nfl_std,data=data_f_2017_sel) 
 kable(prettify(summary(model6))) # Interaction removed --> selection for early flowering
+AIC(model6)
 model7<-lm(n_seeds_rel~FFD_std*plot_new,data=data_f_2017_sel)
 kable(prettify(Anova(model7))) # No differences in selection gradients for FFD among plots
 ```
@@ -341,21 +356,21 @@ ggsave(filename="C:/Users/User/Dropbox/SU/Projects/cerastium/results/figures/fit
 p8<-ggplot()+
   geom_point(data=data_f_2017_sel,aes(x=FFD_std,y=n_seeds_rel),alpha=0.5)+
   geom_smooth(data=data_f_2017_sel,aes(x=FFD_std,y=n_seeds_rel),method="lm",color="black",size=1,se=F)+
-  theme_base()+theme(text=element_text(family="serif"))+ggtitle("A)")+
+  theme_base()+theme(text=element_text(family="serif"))+ggtitle("(a)")+
   theme(plot.background=element_rect(fill="white", colour=NA))+
   xlab("FFD (standardized)")+ylab(NULL)+
   theme(plot.title=element_text(hjust=-0.10,vjust=0))
 p9<-ggplot()  +
   geom_smooth(data=interaction1,aes(x=FFD_std,y=fit_mod,group=as.factor(temp1),color=temp1),
-              method=loess,se=F,size=0.3)+theme_base()+theme(text=element_text(family="serif"))+
-  scale_color_gradient(low = "blue", high = "red")+ggtitle("B)")+
-  theme(plot.background=element_rect(fill="white", colour=NA))+
+              method=loess,se=F,size=0.6)+theme_base()+theme(text=element_text(family="serif"))+
+  ggtitle("(b)")+theme(plot.background=element_rect(fill="white", colour=NA))+
   theme(legend.position="none")+labs(colour="Soil temperature")+
   xlab("FFD (standardized)")+ylab(NULL)+
-  theme(plot.title=element_text(hjust=-0.10,vjust=0))
+  theme(plot.title=element_text(hjust=-0.10,vjust=0))+
+  scale_colour_distiller(type = "seq", palette=8,direction = 1)
 grid.arrange(p8,p9,ncol=2,
     left=textGrob("Number of seeds (relativized)",gp=gpar(fontsize=15,fontfamily="serif"),rot = 90))
-ggsave(filename="C:/Users/User/Dropbox/SU/Projects/cerastium/results/figures/fitness_FFD_temp_2panels.tiff",
+ggsave(filename="C:/Users/User/Dropbox/SU/Projects/cerastium/results/figures/fig2.tiff",
       plot=grid.arrange(p8,p9,ncol=2,left=textGrob("Number of seeds (relativized)",
       gp=gpar(fontsize=15,fontfamily="serif"),rot = 90)),device="tiff",width=20,height=10,units="cm",dpi=600) 
 ```
@@ -378,6 +393,8 @@ Mother plant treated as random effect.
 ```{r first_fl_j~mother, warning=FALSE, message=FALSE}
 model8<-lmer(first_fl_j~(1|mother_pl_id_new), REML=T,data=data_cg)
 summary(model8)
+AIC(model8)
+r.squaredGLMM(model8)
 # Likelihood ratio test for testing the signigicance of random effects
 # Compares a model with a given random effect to the same model without the random effect
 ranova(model8) # Mother is significant
@@ -393,7 +410,7 @@ We expect plants to respond to warming in spring in a counter-gradient fashion, 
 ggplot(data_cg,aes(x=temp_ori,y=first_fl_j))+geom_point()+
   geom_smooth(method = "lm", color = "black",size=1.5)+ 
   my_theme()+xlab("Soil temperature at origin")+ylab("FFD (Julian date)\nin the common garden")
-ggsave(filename="C:/Users/User/Dropbox/SU/Projects/cerastium/results/figures/FFD_tempori.tiff",
+ggsave(filename="C:/Users/User/Dropbox/SU/Projects/cerastium/results/figures/fig3.tiff",
        device="tiff",width=12,height=10,units="cm",dpi=600) 
 ```
 
@@ -420,8 +437,10 @@ Within each stream, there are no significant relationships.
 ### LMM including temperature and mother
 
 ```{r first_fl_j~temp_ori+mother, warning=FALSE, message=FALSE}
-model9<-lmer(first_fl_j~temp_ori+(1|mother_pl_id_new),data = data_cg)
+model9<-lmer(first_fl_j~temp_ori+(1|mother_pl_id_new),REML=T,,data = data_cg)
 kable(prettify(summary(model9))) # Temperature is significant
+AIC(model9)
+r.squaredGLMM(model9)
 ranova(model9) #Stream and mother are significant
 ```
 
